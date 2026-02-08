@@ -3,7 +3,6 @@
  * CST - 250
  * 01/30/2026
  * Milestone 3
- * Activity 3
  */
 using System;
 using MineSweeperClassLib.Models;
