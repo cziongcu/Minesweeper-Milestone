@@ -18,6 +18,13 @@ namespace MineSweeperClassLib.Models
         public DateTime EndTime { get; set; }
         public int RewardsRemaining { get; set; } = 0;
         public GameState GameState { get; set; } = GameState.InProgress;
+        
+        // Milestone 6 Properties
+        public bool HasSound { get; set; } = true;
+        public string ThemeName { get; set; } = "Classic";
+
+        public int TotalActions { get; set; } = 0;
+        public double TotalActionTime { get; set; } = 0;
 
         public BoardModel(int size)
         {

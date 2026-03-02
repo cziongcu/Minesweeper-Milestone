@@ -3,11 +3,15 @@
  * CST-250
  * Milestone 4
  */
-using System;
-using System.Drawing;
-using System.Windows.Forms;
 using MineSweeperClassLib.BLL;
 using MineSweeperClassLib.Models;
+using System;
+using System.Drawing;
+using System.IO;
+using System.Media;
+using Newtonsoft.Json;
+using System.Windows.Forms;
+using static System.Windows.Forms.AxHost;
 
 namespace MinesweeperGUI
 {
@@ -24,6 +28,13 @@ namespace MinesweeperGUI
         private Image[] imgNum = new Image[9];
 
         private bool cheatMode = false;
+
+        private SoundPlayer sndClick;
+        private SoundPlayer sndBomb;
+        private SoundPlayer sndWin;
+        private SoundPlayer sndLost;
+        
+        private DateTime lastActionTime;
 
         public Form1(BoardModel boardModel)
         {
@@ -42,24 +53,52 @@ namespace MinesweeperGUI
 
         private void InitializeGame()
         {
-            // Setup backend
-            bll.SetupBombs(board);
-            bll.CountBombsNearby(board);
-            board.StartTime = DateTime.Now;
+            // Setup backend only if brand new game (Start Time wouldn't be populated if so)
+            if (board.StartTime == default(DateTime))
+            {
+                bll.SetupBombs(board);
+                bll.CountBombsNearby(board);
+                board.StartTime = DateTime.Now;
+            }
+            lastActionTime = DateTime.Now;
 
-            // Load Images
-            string path = System.IO.Path.Combine(Application.StartupPath, "Images");
-            imgHidden = Image.FromFile(System.IO.Path.Combine(path, "hidden.png"));
-            imgQuestion = Image.FromFile(System.IO.Path.Combine(path, "question.png"));
-            imgFlag = Image.FromFile(System.IO.Path.Combine(path, "flag.png"));
-            imgBomb = Image.FromFile(System.IO.Path.Combine(path, "bomb.png"));
+            // Load Images based on Theme
+            string imgPath = System.IO.Path.Combine(Application.StartupPath, "Assets", "Themes", "Classic");
+            
+            if (System.IO.Directory.Exists(System.IO.Path.Combine(Application.StartupPath, "Assets", "Themes", board.ThemeName)))
+            {
+                 imgPath = System.IO.Path.Combine(Application.StartupPath, "Assets", "Themes", board.ThemeName);
+            }
+            else if (board.ThemeName != "Classic")
+            {
+                 MessageBox.Show("Custom theme folder missing. Expecting: " + System.IO.Path.Combine(Application.StartupPath, "Assets", "Themes", board.ThemeName) + "\nFalling back to Classic.");
+            }
+
+            imgHidden = Image.FromFile(System.IO.Path.Combine(imgPath, "hidden.png"));
+            imgQuestion = Image.FromFile(System.IO.Path.Combine(imgPath, "question.png"));
+            imgFlag = Image.FromFile(System.IO.Path.Combine(imgPath, "flag.png"));
+            imgBomb = Image.FromFile(System.IO.Path.Combine(imgPath, "bomb.png"));
             for (int i = 1; i <= 8; i++)
             {
-                imgNum[i] = Image.FromFile(System.IO.Path.Combine(path, $"{i}.png"));
+                imgNum[i] = Image.FromFile(System.IO.Path.Combine(imgPath, $"{i}.png"));
+            }
+
+            // Load Sounds safely
+            if (board.HasSound)
+            {
+                 try
+                 {
+                     string sndPath = System.IO.Path.Combine(Application.StartupPath, "Assets", "Sounds");
+                     sndClick = new SoundPlayer(System.IO.Path.Combine(sndPath, "click.wav"));
+                     sndBomb = new SoundPlayer(System.IO.Path.Combine(sndPath, "bomb.wav"));
+                     sndWin = new SoundPlayer(System.IO.Path.Combine(sndPath, "win.wav"));
+                     sndLost = new SoundPlayer(System.IO.Path.Combine(sndPath, "lost.wav"));
+                 }
+                 catch { /* Graceful fail if missing audio */ }
             }
 
             // Setup UI
-            int buttonSize = 35;
+            int buttonSize = 100;
             this.ClientSize = new Size(board.Size * buttonSize, board.Size * buttonSize);
             
             buttons = new Button[board.Size, board.Size];
@@ -101,6 +140,19 @@ namespace MinesweeperGUI
                 cheatMode = !cheatMode;
                 UpdateBoard();
             }
+            if (e.KeyCode == Keys.S)
+            {
+                try
+                {
+                    string json = JsonConvert.SerializeObject(board);
+                    File.WriteAllText("savedgame.json", json);
+                    MessageBox.Show("Game successfully saved! (You may safely close the window)");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Save failed: " + ex.Message);
+                }
+            }
         }
 
         private void Panel1_Resize(object sender, EventArgs e)
@@ -122,6 +174,11 @@ namespace MinesweeperGUI
 
         private void Btn_MouseDown(object sender, MouseEventArgs e)
         {
+            TimeSpan actionDelta = DateTime.Now - lastActionTime;
+            board.TotalActionTime += actionDelta.TotalSeconds;
+            board.TotalActions++;
+            lastActionTime = DateTime.Now;
+
             Button btn = sender as Button;
             object[] tagData = (object[])btn.Tag;
             int r = (int)tagData[0];
@@ -136,6 +193,8 @@ namespace MinesweeperGUI
 
                 // Sync the actual Board model if it's a flag, so win logic works correctly
                 board.Grid[r, c].IsFlagged = (markingState == 1);
+                
+                if (board.HasSound) sndClick?.Play();
             }
             else if (e.Button == MouseButtons.Left)
             {
@@ -147,9 +206,50 @@ namespace MinesweeperGUI
                 {
                     board.Grid[r, c].IsVisited = true;
                     UpdateBoard();
+                    Application.DoEvents(); // Force UI to draw bomb before freezing thread
+                    
+                    if (board.HasSound) 
+                    {
+                        sndBomb?.PlaySync(); // Let explosion rock safely
+                        sndLost?.Play();     // Trigger failure theme track
+                    }
+                    
                     MessageBox.Show("Game Over! You hit a bomb.");
+           
+
+                        Form4 form4 = new Form4();
+                        form4.ShowDialog();
                     this.Close();
+                    
                     return;
+                }
+                
+                // Safe click
+                if (board.HasSound) sndClick?.Play();
+                
+                if (board.Grid[r, c].HasSpecialReward)
+                {
+                    board.Grid[r, c].HasSpecialReward = false;
+                    MessageBox.Show("Secret hint found! A bomb has been revealed.");
+                    
+                    var unflaggedBombs = new System.Collections.Generic.List<CellModel>();
+                    for (int i = 0; i < board.Size; i++)
+                    {
+                        for (int j = 0; j < board.Size; j++)
+                        {
+                            if (board.Grid[i, j].IsLive && !board.Grid[i, j].IsFlagged)
+                                unflaggedBombs.Add(board.Grid[i, j]);
+                        }
+                    }
+
+                    if (unflaggedBombs.Count > 0)
+                    {
+                        CellModel target = unflaggedBombs[new Random().Next(unflaggedBombs.Count)];
+                        target.IsFlagged = true;
+                        
+                        object[] tgtData = (object[])buttons[target.Row, target.Column].Tag;
+                        tgtData[2] = 1; // Sync flag state to visual marking index
+                    }
                 }
                 
                 // Flood fill
@@ -233,9 +333,13 @@ namespace MinesweeperGUI
                  UpdateBoard();
                  board.EndTime = DateTime.Now;
                  
+                 if (board.HasSound) sndWin?.Play();
+                 
                  // score calc
                  TimeSpan timeTaken = board.EndTime - board.StartTime;
                  int score = Math.Max(0, (board.Size * board.Size * 10) - (int)timeTaken.TotalSeconds);
+
+                 double avgActionTime = board.TotalActions > 0 ? board.TotalActionTime / board.TotalActions : 0;
 
                  Form3 form3 = new Form3(score);
                  if (form3.ShowDialog() == DialogResult.OK)
@@ -245,7 +349,8 @@ namespace MinesweeperGUI
                          form3.WinnerName,
                          score,
                          timeTaken.ToString(@"hh\:mm\:ss"),
-                         board.EndTime
+                         board.EndTime,
+                         avgActionTime
                      );
 
                      Form4 form4 = new Form4(stat);

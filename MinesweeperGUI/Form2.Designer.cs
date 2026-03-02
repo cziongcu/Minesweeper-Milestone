@@ -11,7 +11,10 @@ namespace MinesweeperGUI
         private System.Windows.Forms.RadioButton rbSizeMedium;
         private System.Windows.Forms.RadioButton rbSizeLarge;
         private System.Windows.Forms.GroupBox gbSize;
+        private System.Windows.Forms.CheckBox chkSound;
+        private System.Windows.Forms.ComboBox cmbTheme;
         private System.Windows.Forms.Button btnPlay;
+        private System.Windows.Forms.Button btnLoad;
 
         protected override void Dispose(bool disposing)
         {
@@ -32,7 +35,10 @@ namespace MinesweeperGUI
             this.rbSizeSmall = new System.Windows.Forms.RadioButton();
             this.rbSizeMedium = new System.Windows.Forms.RadioButton();
             this.rbSizeLarge = new System.Windows.Forms.RadioButton();
+            this.chkSound = new System.Windows.Forms.CheckBox();
+            this.cmbTheme = new System.Windows.Forms.ComboBox();
             this.btnPlay = new System.Windows.Forms.Button();
+            this.btnLoad = new System.Windows.Forms.Button();
             this.gbDifficulty.SuspendLayout();
             this.gbSize.SuspendLayout();
             this.SuspendLayout();
@@ -125,22 +131,59 @@ namespace MinesweeperGUI
             this.rbSizeLarge.Text = "Large";
             this.rbSizeLarge.UseVisualStyleBackColor = true;
             // 
+            // chkSound
+            // 
+            this.chkSound.AutoSize = true;
+            this.chkSound.Checked = true;
+            this.chkSound.Location = new System.Drawing.Point(12, 120);
+            this.chkSound.Name = "chkSound";
+            this.chkSound.Size = new System.Drawing.Size(98, 19);
+            this.chkSound.TabIndex = 2;
+            this.chkSound.Text = "Enable Sound";
+            this.chkSound.UseVisualStyleBackColor = true;
+            // 
+            // cmbTheme
+            // 
+            this.cmbTheme.FormattingEnabled = true;
+            this.cmbTheme.Items.AddRange(new object[] {
+            "Classic",
+            "BlackRed",
+            "Matrix"});
+            this.cmbTheme.Location = new System.Drawing.Point(218, 118);
+            this.cmbTheme.Name = "cmbTheme";
+            this.cmbTheme.Size = new System.Drawing.Size(121, 23);
+            this.cmbTheme.TabIndex = 3;
+            this.cmbTheme.Text = "Classic";
+            // 
             // btnPlay
             // 
-            this.btnPlay.Location = new System.Drawing.Point(150, 118);
+            this.btnPlay.Location = new System.Drawing.Point(150, 150);
             this.btnPlay.Name = "btnPlay";
             this.btnPlay.Size = new System.Drawing.Size(120, 40);
-            this.btnPlay.TabIndex = 2;
-            this.btnPlay.Text = "Play";
+            this.btnPlay.TabIndex = 4;
+            this.btnPlay.Text = "New Game";
             this.btnPlay.UseVisualStyleBackColor = true;
             this.btnPlay.Click += new System.EventHandler(this.btnPlay_Click);
+            // 
+            // btnLoad
+            // 
+            this.btnLoad.Location = new System.Drawing.Point(150, 196);
+            this.btnLoad.Name = "btnLoad";
+            this.btnLoad.Size = new System.Drawing.Size(120, 40);
+            this.btnLoad.TabIndex = 5;
+            this.btnLoad.Text = "Load Game";
+            this.btnLoad.UseVisualStyleBackColor = true;
+            this.btnLoad.Click += new System.EventHandler(this.btnLoad_Click);
             // 
             // Form2
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(430, 170);
+            this.ClientSize = new System.Drawing.Size(430, 250);
+            this.Controls.Add(this.chkSound);
+            this.Controls.Add(this.cmbTheme);
             this.Controls.Add(this.btnPlay);
+            this.Controls.Add(this.btnLoad);
             this.Controls.Add(this.gbSize);
             this.Controls.Add(this.gbDifficulty);
             this.Name = "Form2";
