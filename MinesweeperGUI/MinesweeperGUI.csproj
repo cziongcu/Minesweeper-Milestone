@@ -4,6 +4,12 @@
     <ProjectReference Include="..\MineSweeperClassLib\MineSweeperClassLib.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Images\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>

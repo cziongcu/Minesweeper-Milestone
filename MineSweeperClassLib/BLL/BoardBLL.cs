@@ -20,8 +20,14 @@ namespace MineSweeperClassLib.BLL
             {
                 int r = rand.Next(board.Size);
                 int c = rand.Next(board.Size);
-                if (!board.Grid[r, c].IsLive) board.Grid[r, c].IsLive = true;
-                else i--;
+                if (!board.Grid[r, c].IsLive) 
+                {
+                    board.Grid[r, c].IsLive = true;
+                }
+                else 
+                {
+                    i--;
+                }
             }
 
             // Place one special reward cell
@@ -62,16 +68,32 @@ namespace MineSweeperClassLib.BLL
         public GameState DetermineGameState(BoardModel board)
         {
             bool allSafeVisited = true;
+            bool hitBomb = false;
+            
             for (int r = 0; r < board.Size; r++)
             {
                 for (int c = 0; c < board.Size; c++)
                 {
                     CellModel cell = board.Grid[r, c];
-                    if (cell.IsLive && cell.IsVisited) return GameState.Lost;
-                    if (!cell.IsLive && !cell.IsVisited) allSafeVisited = false;
+                    
+                    // You lose if a live cell is visited
+                    if (cell.IsLive && cell.IsVisited)
+                    {
+                        hitBomb = true;
+                    }
+                    
+                    // The game is ONLY won if EVERY SINGLE non-live cell is visited
+                    if (!cell.IsLive && !cell.IsVisited) 
+                    {
+                        allSafeVisited = false;
+                    }
                 }
             }
-            return allSafeVisited ? GameState.Won : GameState.InProgress;
+            
+            if (hitBomb) return GameState.Lost;
+            if (allSafeVisited) return GameState.Won;
+            
+            return GameState.InProgress;
         }
         public void FloodFill(int row, int col, BoardModel board)
         {
